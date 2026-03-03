@@ -28,9 +28,12 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: ['react', 'react-dom', 'better-auth/react'],
     esbuildOptions: {
       target: 'es2022',
     },
+  },
+  ssr: {
+    noExternal: ['better-auth'],
   },
 })

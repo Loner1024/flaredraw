@@ -1,0 +1,14 @@
+{
+  "name": "flaredraw",
+  "account_id": "0460574641fdbb98159c98ebf593e2bd",
+  "compatibility_date": "2026-03-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./src/server/index.ts",
+  "assets": {
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  }
+  // D1 and R2 bindings added in Step 3
+}

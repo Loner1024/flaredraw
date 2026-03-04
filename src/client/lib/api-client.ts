@@ -16,6 +16,16 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  shares: {
+    create: (drawingId: string) =>
+      fetchAPI<{ shareId: string }>('/shares', {
+        method: 'POST',
+        body: JSON.stringify({ drawingId }),
+      }),
+    getContent: (shareId: string) => fetchAPI<DrawingContent>(`/shares/${shareId}`),
+    refresh: (shareId: string) =>
+      fetchAPI<{ refreshed: boolean }>(`/shares/${shareId}`, { method: 'PUT' }),
+  },
   drawings: {
     list: () => fetchAPI<{ drawings: Drawing[] }>('/drawings'),
     create: () => fetchAPI<{ id: string }>('/drawings', { method: 'POST' }),

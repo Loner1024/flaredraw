@@ -1,0 +1,147 @@
+import { Hono } from 'hono'
+import { nanoid } from 'nanoid'
+import { eq } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/d1'
+import { drawings, shares } from '../../db/schema'
+
+type Bindings = {
+  DB: D1Database
+  STORAGE: R2Bucket
+}
+
+type Variables = {
+  user: { id: string; name: string; email: string }
+}
+
+const shareRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+
+// Create a share link (authenticated — user must own the drawing)
+shareRoutes.post('/', async (c) => {
+  const user = c.get('user')
+  const db = drizzle(c.env.DB)
+  const { drawingId } = await c.req.json<{ drawingId: string }>()
+
+  // Verify ownership
+  const [drawing] = await db
+    .select()
+    .from(drawings)
+    .where(eq(drawings.id, drawingId))
+    .limit(1)
+
+  if (!drawing || drawing.userId !== user.id) {
+    return c.json({ error: 'Not found' }, 404)
+  }
+
+  // If drawing already has a share, return existing
+  if (drawing.shareId) {
+    return c.json({ shareId: drawing.shareId })
+  }
+
+  // Copy current content to a share snapshot in R2
+  const shareId = nanoid(10)
+  const shareR2Key = `shares/${shareId}.excalidraw`
+
+  const source = await c.env.STORAGE.get(drawing.r2Key)
+  if (!source) {
+    return c.json({ error: 'Drawing content not found' }, 404)
+  }
+
+  const content = await source.arrayBuffer()
+  await c.env.STORAGE.put(shareR2Key, content, {
+    httpMetadata: { contentType: 'application/json' },
+  })
+
+  // Create share record
+  await db.insert(shares).values({
+    id: shareId,
+    drawingId: drawing.id,
+    r2Key: shareR2Key,
+  })
+
+  // Update drawing with share_id
+  await db
+    .update(drawings)
+    .set({ shareId })
+    .where(eq(drawings.id, drawingId))
+
+  return c.json({ shareId }, 201)
+})
+
+// Get shared drawing (public — no auth required)
+shareRoutes.get('/:shareId', async (c) => {
+  const shareId = c.req.param('shareId')
+  const db = drizzle(c.env.DB)
+
+  const [share] = await db
+    .select()
+    .from(shares)
+    .where(eq(shares.id, shareId))
+    .limit(1)
+
+  if (!share) {
+    return c.json({ error: 'Share not found' }, 404)
+  }
+
+  // Check expiry
+  if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+    return c.json({ error: 'Share link expired' }, 410)
+  }
+
+  // Get content from R2
+  const object = await c.env.STORAGE.get(share.r2Key)
+  if (!object) {
+    return c.json({ error: 'Content not found' }, 404)
+  }
+
+  // Increment view count
+  await db
+    .update(shares)
+    .set({ viewCount: (share.viewCount ?? 0) + 1 })
+    .where(eq(shares.id, shareId))
+
+  const content = await object.text()
+  return c.json(JSON.parse(content))
+})
+
+// Refresh share snapshot (re-copies current drawing content)
+shareRoutes.put('/:shareId', async (c) => {
+  const user = c.get('user')
+  const shareId = c.req.param('shareId')
+  const db = drizzle(c.env.DB)
+
+  const [share] = await db
+    .select()
+    .from(shares)
+    .where(eq(shares.id, shareId))
+    .limit(1)
+
+  if (!share || !share.drawingId) {
+    return c.json({ error: 'Share not found' }, 404)
+  }
+
+  // Verify ownership of the drawing
+  const [drawing] = await db
+    .select()
+    .from(drawings)
+    .where(eq(drawings.id, share.drawingId))
+    .limit(1)
+
+  if (!drawing || drawing.userId !== user.id) {
+    return c.json({ error: 'Not found' }, 404)
+  }
+
+  // Re-copy current content
+  const source = await c.env.STORAGE.get(drawing.r2Key)
+  if (!source) {
+    return c.json({ error: 'Drawing content not found' }, 404)
+  }
+
+  const content = await source.arrayBuffer()
+  await c.env.STORAGE.put(share.r2Key, content, {
+    httpMetadata: { contentType: 'application/json' },
+  })
+
+  return c.json({ refreshed: true })
+})
+
+export { shareRoutes }

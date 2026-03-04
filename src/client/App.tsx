@@ -4,6 +4,7 @@ import { DrawingPage } from './pages/DrawingPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { SignupPage } from './pages/SignupPage'
+import { SharedDrawingPage } from './pages/SharedDrawingPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession()
@@ -28,6 +29,7 @@ export function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/s/:shareId" element={<SharedDrawingPage />} />
       <Route
         path="/"
         element={

@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { createAuth } from './modules/auth'
 import { drawingRoutes } from './modules/drawings/routes'
+import { shareRoutes } from './modules/shares/routes'
 
 type Bindings = {
   DB: D1Database
@@ -56,7 +57,32 @@ app.use('/api/drawings', async (c, next) => {
   await next()
 })
 
+// Auth middleware for share creation/refresh (POST and PUT need auth)
+app.use('/api/shares', async (c, next) => {
+  if (c.req.method === 'GET') return next() // Public GET handled by route
+  const auth = createAuth(c)
+  const session = await auth.api.getSession({ headers: c.req.raw.headers })
+  if (!session?.user) {
+    return c.json({ error: 'Unauthorized' }, 401)
+  }
+  c.set('user', session.user as Variables['user'])
+  await next()
+})
+app.use('/api/shares/*', async (c, next) => {
+  if (c.req.method === 'GET') return next() // Public GET handled by route
+  const auth = createAuth(c)
+  const session = await auth.api.getSession({ headers: c.req.raw.headers })
+  if (!session?.user) {
+    return c.json({ error: 'Unauthorized' }, 401)
+  }
+  c.set('user', session.user as Variables['user'])
+  await next()
+})
+
 // Drawing routes
 app.route('/api/drawings', drawingRoutes)
+
+// Share routes
+app.route('/api/shares', shareRoutes)
 
 export default app

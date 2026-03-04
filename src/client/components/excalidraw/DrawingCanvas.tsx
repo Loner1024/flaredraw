@@ -1,9 +1,9 @@
 import '@excalidraw/excalidraw/index.css'
 import { Excalidraw } from '@excalidraw/excalidraw'
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useState } from 'react'
 import { useAutoSave, type SaveStatus } from '@/client/hooks/useAutoSave'
-import type { DrawingContent } from '@/client/lib/api-client'
+import { api, type DrawingContent } from '@/client/lib/api-client'
 
 function SaveIndicator({ status }: { status: SaveStatus }) {
   const colors: Record<SaveStatus, string> = {
@@ -27,12 +27,43 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
   )
 }
 
+function ShareButton({ drawingId }: { drawingId: string }) {
+  const [copied, setCopied] = useState(false)
+  const [sharing, setSharing] = useState(false)
+
+  async function handleShare() {
+    setSharing(true)
+    try {
+      const { shareId } = await api.shares.create(drawingId)
+      const url = `${window.location.origin}/s/${shareId}`
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Silently fail — share button is non-critical
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleShare}
+      disabled={sharing}
+      className="rounded-md bg-zinc-900 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+    >
+      {copied ? 'Link copied!' : sharing ? 'Sharing...' : 'Share'}
+    </button>
+  )
+}
+
 type DrawingCanvasProps = {
   drawingId: string | null
   initialData?: DrawingContent | null
+  viewMode?: boolean
 }
 
-export function DrawingCanvas({ drawingId, initialData }: DrawingCanvasProps) {
+export function DrawingCanvas({ drawingId, initialData, viewMode }: DrawingCanvasProps) {
   const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null)
   const { handleChange, saveStatus } = useAutoSave(drawingId)
 
@@ -51,15 +82,21 @@ export function DrawingCanvas({ drawingId, initialData }: DrawingCanvasProps) {
           files: initialData.files,
           scrollToContent: true,
         } as any : undefined}
+        viewModeEnabled={viewMode}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onChange={handleChange as any}
+        onChange={viewMode ? undefined : handleChange as any}
         theme={
           window.matchMedia('(prefers-color-scheme: dark)').matches
             ? 'dark'
             : 'light'
         }
         renderTopRightUI={() =>
-          drawingId ? <SaveIndicator status={saveStatus} /> : null
+          drawingId ? (
+            <div className="flex items-center gap-2">
+              <ShareButton drawingId={drawingId} />
+              <SaveIndicator status={saveStatus} />
+            </div>
+          ) : null
         }
       />
     </div>

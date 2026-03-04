@@ -2,11 +2,19 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, type Drawing } from '@/client/lib/api-client'
 import { signOut } from '@/client/lib/auth'
+import { useThemeContext } from '@/client/components/ThemeProvider'
+
+const themeIcons: Record<string, string> = {
+  light: '\u2600\uFE0F',  // sun
+  dark: '\uD83C\uDF19',    // moon
+  system: '\uD83D\uDCBB',  // laptop
+}
 
 export function DashboardPage() {
   const [drawings, setDrawings] = useState<Drawing[]>([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const { theme, cycleTheme } = useThemeContext()
 
   useEffect(() => {
     api.drawings.list().then((data) => {
@@ -55,6 +63,13 @@ export function DashboardPage() {
               className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
               New Drawing
+            </button>
+            <button
+              onClick={cycleTheme}
+              className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              title={`Theme: ${theme}`}
+            >
+              {themeIcons[theme]}
             </button>
             <button
               onClick={handleLogout}

@@ -4,6 +4,7 @@ import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 import { useRef, useCallback, useState } from 'react'
 import { useAutoSave, type SaveStatus } from '@/client/hooks/useAutoSave'
 import { api, type DrawingContent } from '@/client/lib/api-client'
+import { useThemeContext } from '@/client/components/ThemeProvider'
 
 function SaveIndicator({ status }: { status: SaveStatus }) {
   const colors: Record<SaveStatus, string> = {
@@ -66,6 +67,7 @@ type DrawingCanvasProps = {
 export function DrawingCanvas({ drawingId, initialData, viewMode }: DrawingCanvasProps) {
   const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null)
   const { handleChange, saveStatus } = useAutoSave(drawingId)
+  const { resolved: resolvedTheme } = useThemeContext()
 
   const handleExcalidrawAPI = useCallback((api: ExcalidrawImperativeAPI) => {
     excalidrawAPIRef.current = api
@@ -85,11 +87,7 @@ export function DrawingCanvas({ drawingId, initialData, viewMode }: DrawingCanva
         viewModeEnabled={viewMode}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onChange={viewMode ? undefined : handleChange as any}
-        theme={
-          window.matchMedia('(prefers-color-scheme: dark)').matches
-            ? 'dark'
-            : 'light'
-        }
+        theme={resolvedTheme}
         renderTopRightUI={() =>
           drawingId ? (
             <div className="flex items-center gap-2">

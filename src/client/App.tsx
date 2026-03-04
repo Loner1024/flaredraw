@@ -3,7 +3,6 @@ import { useSession } from '@/client/lib/auth'
 import { DrawingPage } from './pages/DrawingPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
-import { SignupPage } from './pages/SignupPage'
 import { SharedDrawingPage } from './pages/SharedDrawingPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -28,7 +27,6 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
       <Route path="/s/:shareId" element={<SharedDrawingPage />} />
       <Route
         path="/"

@@ -9,13 +9,18 @@ export function createAuth(c: Context<any>) {
     secret: c.env.BETTER_AUTH_SECRET,
     baseURL: c.env.BETTER_AUTH_URL,
     emailAndPassword: {
-      enabled: true,
+      enabled: false,
+    },
+    socialProviders: {
+      google: {
+        clientId: c.env.GOOGLE_CLIENT_ID,
+        clientSecret: c.env.GOOGLE_CLIENT_SECRET,
+      },
     },
     trustedOrigins: [
       c.env.BETTER_AUTH_URL,
       'http://localhost:5173',
       'http://localhost:5174',
-      'https://draw.jezweb.ai',
       'https://draw.flared.au',
     ],
   })

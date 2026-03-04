@@ -18,8 +18,8 @@ pnpm db:migrate:remote # Apply migrations to production D1
 - **Frontend**: React 19 + Excalidraw npm package + React Router + Tailwind v4 + shadcn/ui
 - **Backend**: Hono on Cloudflare Workers
 - **Database**: D1 (metadata via Drizzle) + R2 (drawing content)
-- **Auth**: better-auth with D1 binding (NOT drizzleAdapter)
-- **Domain**: draw.jezweb.ai
+- **Auth**: better-auth with Google OAuth (D1 binding, NOT drizzleAdapter). No email/password.
+- **Domain**: draw.flared.au
 
 ## Key Patterns
 

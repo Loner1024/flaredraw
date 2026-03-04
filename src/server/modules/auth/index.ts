@@ -16,6 +16,7 @@ export function createAuth(c: Context<any>) {
       'http://localhost:5173',
       'http://localhost:5174',
       'https://draw.jezweb.ai',
+      'https://draw.flared.au',
     ],
   })
 }

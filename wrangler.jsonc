@@ -27,5 +27,8 @@
   ],
   "ai": {
     "binding": "AI"
-  }
+  },
+  "routes": [
+    { "pattern": "draw.flared.au", "custom_domain": true }
+  ]
 }

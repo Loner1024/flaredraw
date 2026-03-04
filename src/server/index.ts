@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { createAuth } from './modules/auth'
+import { drawingRoutes } from './modules/drawings/routes'
 
 type Bindings = {
   DB: D1Database
@@ -16,10 +17,10 @@ type Variables = {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
-// CORS for auth endpoints
+// CORS
 app.use('/api/*', cors({
   origin: (origin) => origin || '',
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }))
@@ -44,10 +45,18 @@ app.use('/api/drawings/*', async (c, next) => {
   await next()
 })
 
-// Drawing routes placeholder (Step 5)
-app.get('/api/drawings', (c) => {
-  const user = c.get('user')
-  return c.json({ drawings: [], user: user?.email })
+// Also protect the base /api/drawings route (no trailing wildcard)
+app.use('/api/drawings', async (c, next) => {
+  const auth = createAuth(c)
+  const session = await auth.api.getSession({ headers: c.req.raw.headers })
+  if (!session?.user) {
+    return c.json({ error: 'Unauthorized' }, 401)
+  }
+  c.set('user', session.user as Variables['user'])
+  await next()
 })
+
+// Drawing routes
+app.route('/api/drawings', drawingRoutes)
 
 export default app

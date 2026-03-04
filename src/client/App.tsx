@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSession } from '@/client/lib/auth'
 import { DrawingPage } from './pages/DrawingPage'
+import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { SignupPage } from './pages/SignupPage'
 
@@ -29,6 +30,14 @@ export function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route
         path="/"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/draw/:id"
         element={
           <ProtectedRoute>
             <DrawingPage />

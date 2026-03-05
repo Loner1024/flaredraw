@@ -6,6 +6,21 @@ import { useAutoSave, type SaveStatus } from '@/client/hooks/useAutoSave'
 import { api, type DrawingContent } from '@/client/lib/api-client'
 import { useThemeContext } from '@/client/components/ThemeProvider'
 
+async function uploadSharePng(excalidrawAPI: ExcalidrawImperativeAPI, shareId: string) {
+  const { exportToBlob } = await import('@excalidraw/excalidraw')
+  const blob = await exportToBlob({
+    elements: excalidrawAPI.getSceneElements(),
+    appState: { ...excalidrawAPI.getAppState(), exportWithDarkMode: false },
+    files: excalidrawAPI.getFiles(),
+    mimeType: 'image/png',
+  })
+  await fetch(`/api/shares/${shareId}/png`, {
+    method: 'PUT',
+    body: blob,
+    credentials: 'include',
+  })
+}
+
 function SaveIndicator({ status }: { status: SaveStatus }) {
   const colors: Record<SaveStatus, string> = {
     saved: 'bg-green-500',
@@ -28,7 +43,7 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
   )
 }
 
-function ShareButton({ drawingId }: { drawingId: string }) {
+function ShareButton({ drawingId, excalidrawAPI }: { drawingId: string; excalidrawAPI: ExcalidrawImperativeAPI | null }) {
   const [copied, setCopied] = useState(false)
   const [sharing, setSharing] = useState(false)
 
@@ -40,6 +55,13 @@ function ShareButton({ drawingId }: { drawingId: string }) {
       await navigator.clipboard.writeText(url)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+
+      // Generate and upload PNG in the background (non-blocking)
+      if (excalidrawAPI) {
+        uploadSharePng(excalidrawAPI, shareId).catch(() => {
+          // PNG upload failure is non-critical
+        })
+      }
     } catch {
       // Silently fail — share button is non-critical
     } finally {
@@ -91,7 +113,7 @@ export function DrawingCanvas({ drawingId, initialData, viewMode }: DrawingCanva
         renderTopRightUI={() =>
           drawingId ? (
             <div className="flex items-center gap-2">
-              <ShareButton drawingId={drawingId} />
+              <ShareButton drawingId={drawingId} excalidrawAPI={excalidrawAPIRef.current} />
               <SaveIndicator status={saveStatus} />
             </div>
           ) : null

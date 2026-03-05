@@ -15,8 +15,10 @@
     "postinstall": "node scripts/copy-fonts.js"
   },
   "dependencies": {
+    "@cloudflare/puppeteer": "^1.0.6",
     "@excalidraw/excalidraw": "^0.18.0",
     "@hono/zod-validator": "^0.7.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "better-auth": "^1.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

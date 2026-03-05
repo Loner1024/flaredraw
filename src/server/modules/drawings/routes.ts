@@ -29,34 +29,44 @@ drawingRoutes.get('/', async (c) => {
   return c.json({ drawings: results })
 })
 
-// Create new drawing
+// Create new drawing — optionally accepts content and title
 drawingRoutes.post('/', async (c) => {
   const user = c.get('user')
   const db = drizzle(c.env.DB)
   const id = nanoid(12)
   const r2Key = `drawings/${user.id}/${id}.excalidraw`
 
-  // Store empty drawing in R2
-  const emptyDrawing = JSON.stringify({
+  // Parse optional body (may be empty for UI-created drawings)
+  let body: { title?: string; elements?: unknown[]; appState?: Record<string, unknown>; files?: Record<string, unknown> } = {}
+  try {
+    body = await c.req.json()
+  } catch {
+    // Empty body is fine — creates empty drawing
+  }
+
+  const elements = Array.isArray(body.elements) ? body.elements : []
+  const title = body.title?.trim() || 'Untitled'
+
+  const drawingContent = JSON.stringify({
     type: 'excalidraw',
     version: 2,
     source: 'flaredraw',
-    elements: [],
-    appState: { viewBackgroundColor: '#ffffff' },
-    files: {},
+    elements,
+    appState: { viewBackgroundColor: '#ffffff', ...body.appState },
+    files: body.files || {},
   })
-  await c.env.STORAGE.put(r2Key, emptyDrawing, {
+
+  await c.env.STORAGE.put(r2Key, drawingContent, {
     httpMetadata: { contentType: 'application/json' },
   })
 
-  // Create metadata in D1
   const now = new Date().toISOString()
   await db.insert(drawings).values({
     id,
     userId: user.id,
-    title: 'Untitled',
+    title,
     r2Key,
-    elementCount: 0,
+    elementCount: elements.length,
     lastModified: now,
   })
 

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSession } from '@/client/lib/auth'
 import { DrawingPage } from './pages/DrawingPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { LoginPage } from './pages/LoginPage'
 import { SharedDrawingPage } from './pages/SharedDrawingPage'
 
@@ -41,6 +42,14 @@ export function App() {
         element={
           <ProtectedRoute>
             <DrawingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
           </ProtectedRoute>
         }
       />

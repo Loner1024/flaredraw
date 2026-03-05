@@ -49,6 +49,52 @@ export const verifications = sqliteTable('verification', {
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 })
 
+// ─── API Tokens ───
+
+export const apiTokens = sqliteTable('api_tokens', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  token: text('token').notNull().unique(),
+  tokenPrefix: text('token_prefix').notNull(),
+  lastUsedAt: text('last_used_at'),
+  expiresAt: text('expires_at'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+})
+
+// ─── MCP OAuth ───
+
+export const mcpOAuthClients = sqliteTable('mcp_oauth_clients', {
+  clientId: text('client_id').primaryKey(),
+  clientSecret: text('client_secret'),
+  redirectUris: text('redirect_uris').notNull(), // JSON array
+  clientName: text('client_name'),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+})
+
+export const mcpOAuthCodes = sqliteTable('mcp_oauth_codes', {
+  code: text('code').primaryKey(),
+  clientId: text('client_id').notNull(),
+  userId: text('user_id'),
+  redirectUri: text('redirect_uri').notNull(),
+  codeChallenge: text('code_challenge').notNull(),
+  codeChallengeMethod: text('code_challenge_method').notNull().default('S256'),
+  scope: text('scope'),
+  clientState: text('client_state'),
+  expiresAt: integer('expires_at').notNull(),
+  used: integer('used', { mode: 'boolean' }).default(false),
+})
+
+export const mcpOAuthTokens = sqliteTable('mcp_oauth_tokens', {
+  token: text('token').primaryKey(), // SHA-256 hash
+  clientId: text('client_id').notNull(),
+  userId: text('user_id').notNull().references(() => users.id),
+  scope: text('scope'),
+  expiresAt: integer('expires_at').notNull(),
+  refreshToken: text('refresh_token').unique(), // SHA-256 hash
+  refreshExpiresAt: integer('refresh_expires_at'),
+})
+
 // ─── Application tables ───
 
 export const drawings = sqliteTable('drawings', {

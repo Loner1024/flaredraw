@@ -25,6 +25,15 @@ export const api = {
     getContent: (shareId: string) => fetchAPI<DrawingContent>(`/shares/${shareId}`),
     refresh: (shareId: string) =>
       fetchAPI<{ refreshed: boolean }>(`/shares/${shareId}`, { method: 'PUT' }),
+    uploadPng: async (shareId: string, blob: Blob) => {
+      const res = await fetch(`${API_BASE}/shares/${shareId}/png`, {
+        method: 'PUT',
+        body: blob,
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error('PNG upload failed')
+      return res.json() as Promise<{ uploaded: boolean }>
+    },
   },
   drawings: {
     list: () => fetchAPI<{ drawings: Drawing[] }>('/drawings'),

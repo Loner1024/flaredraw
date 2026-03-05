@@ -6,7 +6,7 @@
   "main": "./src/server/index.ts",
   "assets": {
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/.well-known/*", "/oauth/*"]
   },
   "observability": {
     "enabled": true
@@ -27,6 +27,9 @@
   ],
   "ai": {
     "binding": "AI"
+  },
+  "browser": {
+    "binding": "BROWSER"
   },
   "routes": [
     { "pattern": "draw.flared.au", "custom_domain": true }

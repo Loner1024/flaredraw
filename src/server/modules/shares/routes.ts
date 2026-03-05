@@ -3,10 +3,12 @@ import { nanoid } from 'nanoid'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/d1'
 import { drawings, shares } from '../../db/schema'
+import { generatePng } from '../export/png'
 
 type Bindings = {
   DB: D1Database
   STORAGE: R2Bucket
+  BROWSER: Fetcher
 }
 
 type Variables = {
@@ -142,6 +144,109 @@ shareRoutes.put('/:shareId', async (c) => {
   })
 
   return c.json({ refreshed: true })
+})
+
+// Get PNG for a shared drawing (public — no auth required)
+shareRoutes.get('/:shareId/png', async (c) => {
+  const shareId = c.req.param('shareId')
+
+  // Check if PNG exists in R2
+  const pngKey = `shares/${shareId}.png`
+  const object = await c.env.STORAGE.get(pngKey)
+
+  if (!object) {
+    return c.json(
+      { error: 'PNG not yet generated. Use POST to trigger generation, or share from the web UI.' },
+      404,
+    )
+  }
+
+  return new Response(object.body, {
+    headers: {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=86400',
+    },
+  })
+})
+
+// Upload PNG from client (PUT with image/png body — auth required)
+shareRoutes.put('/:shareId/png', async (c) => {
+  const user = c.get('user')
+  const shareId = c.req.param('shareId')
+  const db = drizzle(c.env.DB)
+
+  // Verify share exists and user owns the drawing
+  const [share] = await db
+    .select()
+    .from(shares)
+    .where(eq(shares.id, shareId))
+    .limit(1)
+
+  if (!share?.drawingId) {
+    return c.json({ error: 'Share not found' }, 404)
+  }
+
+  const [drawing] = await db
+    .select()
+    .from(drawings)
+    .where(eq(drawings.id, share.drawingId))
+    .limit(1)
+
+  if (!drawing || drawing.userId !== user.id) {
+    return c.json({ error: 'Not found' }, 404)
+  }
+
+  const body = await c.req.arrayBuffer()
+  const pngKey = `shares/${shareId}.png`
+  await c.env.STORAGE.put(pngKey, body, {
+    httpMetadata: { contentType: 'image/png' },
+  })
+
+  return c.json({ uploaded: true })
+})
+
+// Trigger server-side PNG generation via Browser Rendering (auth required)
+shareRoutes.post('/:shareId/png', async (c) => {
+  const user = c.get('user')
+  const shareId = c.req.param('shareId')
+  const db = drizzle(c.env.DB)
+
+  // Verify share exists and user owns the drawing
+  const [share] = await db
+    .select()
+    .from(shares)
+    .where(eq(shares.id, shareId))
+    .limit(1)
+
+  if (!share?.drawingId) {
+    return c.json({ error: 'Share not found' }, 404)
+  }
+
+  const [drawing] = await db
+    .select()
+    .from(drawings)
+    .where(eq(drawings.id, share.drawingId))
+    .limit(1)
+
+  if (!drawing || drawing.userId !== user.id) {
+    return c.json({ error: 'Not found' }, 404)
+  }
+
+  try {
+    const origin = new URL(c.req.url).origin
+    const shareUrl = `${origin}/s/${shareId}`
+    const pngData = await generatePng(c.env.BROWSER, shareUrl)
+
+    const pngKey = `shares/${shareId}.png`
+    await c.env.STORAGE.put(pngKey, pngData, {
+      httpMetadata: { contentType: 'image/png' },
+    })
+
+    return c.json({ generated: true, pngUrl: `${origin}/api/shares/${shareId}/png` })
+  } catch (err) {
+    console.error(JSON.stringify({ event: 'png_generation_error', shareId, error: String(err) }))
+    return c.json({ error: 'PNG generation failed' }, 500)
+  }
 })
 
 export { shareRoutes }

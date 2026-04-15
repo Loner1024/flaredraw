@@ -1,37 +1,36 @@
 {
   "name": "flaredraw",
-  "account_id": "0460574641fdbb98159c98ebf593e2bd",
+  "account_id": "5dcdb6c96e93d90e6b34559e4d307671",
   "compatibility_date": "2026-03-01",
   "compatibility_flags": ["nodejs_compat"],
   "main": "./src/server/index.ts",
   "assets": {
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/.well-known/*", "/oauth/*"]
+    "run_worker_first": ["/api/*", "/.well-known/*", "/oauth/*"],
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "flaredraw-db",
-      "database_id": "679c2d57-5374-4349-b0e4-7542fcab6d0e",
-      "migrations_dir": "drizzle"
-    }
+      "database_id": "5b676ff8-6935-4f6f-9d4d-2e8e6d98349c",
+      "migrations_dir": "drizzle",
+    },
   ],
   "r2_buckets": [
     {
       "binding": "STORAGE",
-      "bucket_name": "flaredraw-storage"
-    }
+      "bucket_name": "flaredraw-storage",
+      "preview_bucket_name": "flaredraw-storage",
+    },
   ],
   "ai": {
-    "binding": "AI"
+    "binding": "AI",
   },
   "browser": {
-    "binding": "BROWSER"
+    "binding": "BROWSER",
   },
-  "routes": [
-    { "pattern": "draw.flared.au", "custom_domain": true }
-  ]
+  "routes": [{ "pattern": "draw.uniix.dev", "custom_domain": true }],
 }

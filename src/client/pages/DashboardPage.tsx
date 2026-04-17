@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api, type Drawing } from '@/client/lib/api-client'
 import { signOut } from '@/client/lib/auth'
 import { useThemeContext } from '@/client/components/ThemeProvider'
+import { clearRenameUiForCompletedSave, type RenameDraft, type RenameError } from '@/client/pages/dashboardRenameState'
 
 const themeIcons: Record<string, string> = {
   light: '\u2600\uFE0F',  // sun
@@ -29,13 +30,15 @@ export function DashboardPage() {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [renameSavingId, setRenameSavingId] = useState<string | null>(null)
-  const [renameError, setRenameError] = useState<{ id: string; message: string } | null>(null)
+  const [renameError, setRenameError] = useState<RenameError | null>(null)
   const navigate = useNavigate()
   const { theme, cycleTheme } = useThemeContext()
   const menuRef = useRef<HTMLDivElement | null>(null)
   const renameInputRef = useRef<HTMLInputElement | null>(null)
   const renameSubmittingIdRef = useRef<string | null>(null)
   const renameBlurIgnoreIdRef = useRef<string | null>(null)
+  const renameDraftRef = useRef<RenameDraft | null>(null)
+  const renameErrorRef = useRef<RenameError | null>(null)
 
   useEffect(() => {
     api.drawings.list().then((data) => {
@@ -50,6 +53,14 @@ export function DashboardPage() {
       renameInputRef.current.select()
     }
   }, [renamingId])
+
+  useEffect(() => {
+    renameDraftRef.current = renamingId ? { drawingId: renamingId, value: renameValue } : null
+  }, [renamingId, renameValue])
+
+  useEffect(() => {
+    renameErrorRef.current = renameError
+  }, [renameError])
 
   useEffect(() => {
     if (!menuOpenId) return
@@ -131,7 +142,14 @@ export function DashboardPage() {
           prev.map((item) => (item.id === drawing.id ? { ...item, title, lastModified } : item))
         )
       )
-      cancelRenaming()
+      const nextRenameUi = clearRenameUiForCompletedSave(
+        renameDraftRef.current,
+        renameErrorRef.current,
+        drawing.id
+      )
+      setRenamingId(nextRenameUi.draft?.drawingId ?? null)
+      setRenameValue(nextRenameUi.draft?.value ?? '')
+      setRenameError(nextRenameUi.error)
     } catch (error) {
       setRenameError({
         id: drawing.id,
